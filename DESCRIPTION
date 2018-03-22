@@ -14,3 +14,4 @@ Imports:
     VariantAnnotation,
     rtracklayer,
     stringr
+RoxygenNote: 6.0.1

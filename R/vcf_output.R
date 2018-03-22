@@ -1,10 +1,92 @@
-library(VariantAnnotation)
-library(rtracklayer)
-library(tidyverse)
+# read_vcf("~/projects/nea-over-time/data/simulations/deserts_tf_binding_site_h_0.5_rep_2_gen_2200.vcf.gz")
+#' Read a simulated VCF file.
+#'
+#' @param path Path to a VCF file.
+#'
+#' @return VCF object.
+#'
+#' @seealso VariantAnnotation::readVCF
+read_vcf <- function(path) {
+  VariantAnnotation::readVcf(path)
+}
+
+
+#' Load mutation data.
+#'
+#' @param mut_type Mutation type using SLiM conventions ("m0", "m1", etc.).
+#' @param pop_origin Population in which a mutation originated ("p0", "p1", etc.).
+#' @param t_min Lower bound on time of origin.
+#' @param t_max Upper bound on time of origin.
+#'
+#' @return GRanges object.
+#'
+#' @importFrom magrittr %>%
+mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
+  mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
+
+  gr <- GenomicRanges::granges(vcf)[mut_pos]
+  names(gr) <- NULL
+
+  sample_ids <- VariantAnnotation::samples(VariantAnnotation::header(vcf))
+  VariantAnnotation::mcols(gr) <- as.data.frame(VariantAnnotation::info(vcf)) %>%
+    dplyr::filter(mut_pos) %>%
+    dplyr::mutate(freq = AC / (2 * length(sample_ids)))
+
+  gr
+}
+
+
+# Filter positions based on given mutation criteria.
+filter_muts <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
+  vcf_info <- VariantAnnotation::info(vcf)
+
+  mut_pos <- vcf_info$GO >= t_min & vcf_info$GO <= t_max
+
+  if (!is.null(mut_type)) {
+    mut_pos <- mut_pos & vcf_info$MT == mut_type
+  }
+
+  if (!is.null(pop_origin)) {
+    mut_pos <- mut_pos & (vcf_info$PO == pop_origin)
+  }
+
+  mut_pos
+}
+
+
+#' Load mutation genotypes and other information.
+#'
+#' @param mut_type Mutation type using SLiM conventions ("m0", "m1", etc.).
+#' @param pop_origin Population in which a mutation originated ("p0", "p1", etc.).
+#' @param t_min Lower bound on time of origin.
+#' @param t_max Upper bound on time of origin.
+#'
+#' @return GRanges object.
+#'
+#' @importFrom magrittr %>
+mut_genotypes <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
+  mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
+
+  gr <- GenomicRanges::granges(vcf)[mut_pos]
+
+  # get the GTs at given sites
+  gt_matrix <- VariantAnnotation::geno(vcf)$GT[mut_pos, ]
+  hap_mat <- split_chromosomes(gt_mat)
+  info_cols <- as.data.frame(mcols(mut_info(vcf, mut_type, pop_origin, t_min, t_max)))
+
+  mcols(gr) <- bind_cols(info_cols, as.data.frame(hap_mat))
+  names(gr) <- NULL
+
+  # shift VCF coordinates back to the SLiM 0-based system
+  gr <- shift(gr, shift = -1)
+
+  sort(gr)
+}
+
 
 #' Split the GT matrix into haplotype GT matrix.
 split_chromosomes <- function(gt_mat) {
-    hap_mat <- matrix(nrow=nrow(gt_mat), ncol=ncol(gt_mat) * 2)
+    hap_mat <- matrix(nrow = nrow(gt_mat), ncol = ncol(gt_mat) * 2)
     colnames(hap_mat) <- paste0("chr", 1:ncol(hap_mat))
     for (i in seq_len(ncol(gt_mat))) {
         k <- (2 * i) - 1
@@ -13,69 +95,35 @@ split_chromosomes <- function(gt_mat) {
     hap_mat
 }
 
-#' Load mutation info about a given mutation type.
-mut_info <- function(vcf, mut_type=NULL, pop_origin=NULL, t_min=-Inf, t_max=Inf) {
-  mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
-
-  gr <- granges(vcf)[mut_pos]
-  names(gr) <- NULL
-
-  mcols(gr) <- as.data.frame(info(vcf)) %>%
-    filter(mut_pos) %>%
-    mutate(freq = AC / (2 * length(samples(header(vcf)))))
-
-  gr
-}
-
-#' Load mutations of a given type from SLiM.
-#' Mutation type 0 are deleterious mutations, mutation type 1 are neutral
-#' markers.
-mut_genotypes <- function(vcf, mut_type=NULL, pop_origin=NULL, t_min=-Inf, t_max=Inf) {
-  mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
-
-  gr <- granges(vcf)[mut_pos]
-  
-  gt_mat <- geno(vcf)$GT[mut_pos, ]
-  hap_mat <- split_chromosomes(gt_mat)
-  info_cols <- as.data.frame(mcols(mut_info(vcf, mut_type, pop_origin, t_min, t_max)))
-  
-  mcols(gr) <- bind_cols(info_cols, as.data.frame(hap_mat))
-  names(gr) <- NULL
-  
-  # shift VCF coordinates back to the SLiM 0-based system
-  gr <- shift(gr, shift=-1)
-  
-  sort(gr)
-}
 
 #' Load the simulated Neanderthal fixed markers and their frequencies
 #' (either all, or the ones within regions or gaps). Return as a GRanges
 #' object.
-get_markers <- function(vcf, sites_coords, within_region=NULL, fill_freq=TRUE) {
+get_markers <- function(vcf, sites_coords, within_region = NULL, fill_freq = TRUE) {
   if (!(is.null(within_region) || within_region %in% c("region", "gap")))
       stop("Invalid region specified")
 
   # coordinates of all sites (real & SLiM coords)
   real_sites <- read_sites(sites_coords)
   # simulated data
-  sim_sites <- mut_info(vcf, mut_type=1) %>% shift(shift=-1)
-  
+  sim_sites <- mut_info(vcf, mut_type = 1) %>% shift(shift = -1)
+
   trans_sites <- transpose_sites(sim_sites, real_sites) %>%
-    as.data.frame %>% select(chrom=seqnames, pos=start, freq) %>%
-    mutate(chrom=as.character(chrom),
-           MID=sim_sites$MID,
-           S=0)
+    as.data.frame %>% select(chrom = seqnames, pos = start, freq) %>%
+    mutate(chrom = as.character(chrom),
+           MID = sim_sites$MID,
+           S = 0)
 
   all_sites <- mcols(real_sites) %>%
-    as.data.frame %>% select(chrom=real_chrom, pos=real_end, within)
+    as.data.frame %>% select(chrom = real_chrom, pos = real_end, within)
 
   if (fill_freq) {
-    markers <- full_join(trans_sites, all_sites, by=c("chrom", "pos")) %>%
-      mutate(freq=ifelse(is.na(freq), 0, freq),
-             chrom=factor(chrom, levels=paste0("chr", 1:22))) %>%
+    markers <- full_join(trans_sites, all_sites, by = c("chrom", "pos")) %>%
+      mutate(freq = ifelse(is.na(freq), 0, freq),
+             chrom = factor(chrom, levels = paste0("chr", 1:22))) %>%
       arrange(chrom, pos)
   } else {
-    markers <- inner_join(trans_sites, all_sites, by=c("chrom", "pos"))
+    markers <- inner_join(trans_sites, all_sites, by = c("chrom", "pos"))
   }
 
   if (!is.null(within_region))
@@ -86,7 +134,7 @@ get_markers <- function(vcf, sites_coords, within_region=NULL, fill_freq=TRUE) {
 
 #' Calculate the number of Nea. mutations (given in a GRanges object) in all
 #' simulated individuals. Return result as an integer vector.
-#' 
+#'
 #' Nea. ancestry proportion can be calculated as: result / (2 * mut_count)
 nea_per_ind <- function(gr) {
   ind_counts <- as.data.frame(mcols(gr)) %>%
@@ -94,12 +142,12 @@ nea_per_ind <- function(gr) {
     summarise_all(sum) %>%
     t %>%
     as.vector
-  
+
   ind_counts
 }
 
 #' Extract coordinates of deserts from a given VCF file.
-get_deserts <- function(markers, cutoff=0) {
+get_deserts <- function(markers, cutoff = 0) {
     all_chrom <- list()
     for (chrom in paste0("chr", 1:22)) {
         sites <- markers[markers$chrom == chrom, ]
@@ -116,8 +164,8 @@ get_deserts <- function(markers, cutoff=0) {
         desert_start <- block_start[desert_runs$values == 0]
         desert_end <- block_end[desert_runs$values == 0]
 
-        all_chrom[[chrom]] <- GRanges(chrom, IRanges(start=sites[desert_start + 1, ]$pos,
-                                                     end=sites[desert_end, ]$pos))
+        all_chrom[[chrom]] <- GRanges(chrom, IRanges(start = sites[desert_start + 1, ]$pos,
+                                                     end = sites[desert_end, ]$pos))
     }
     Reduce(c, GRangesList(all_chrom))
 }
@@ -126,33 +174,33 @@ get_deserts <- function(markers, cutoff=0) {
 get_centromeres <- function() {
     session <- browserSession("UCSC")
     genome(session) <- "hg19"
-    query <- ucscTableQuery(session, "gap", GRangesForUCSCGenome("hg19", chrom=paste0("chr", 1:22)))
+    query <- ucscTableQuery(session, "gap", GRangesForUCSCGenome("hg19", chrom = paste0("chr", 1:22)))
 
     tbl <- getTable(query)
 
     gaps <- filter(tbl, type %in% c("centromere"), chrom %in% paste0("chr", 1:22)) %>%
-        makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+        makeGRangesFromDataFrame(keep.extra.columns = TRUE)
 
     gaps
 }
 
 #' Read BED file with coordinates of a given type of genomic elements.
-read_regions <- function(regions_bed, slim=FALSE) {
-  df <- read_tsv(regions_bed, col_types="ciicdiii")
+read_regions <- function(regions_bed, slim = FALSE) {
+  df <- read_tsv(regions_bed, col_types = "ciicdiii")
   if (slim) {
-    df %>% mutate(chrom="1") %>% select(chrom, slim_start, slim_end) %>%
-      makeGRangesFromDataFrame(starts.in.df.are.0based=TRUE)
+    df %>% mutate(chrom = "1") %>% select(chrom, slim_start, slim_end) %>%
+      makeGRangesFromDataFrame(starts.in.df.are.0based = TRUE)
   } else {
-      makeGRangesFromDataFrame(df, starts.in.df.are.0based=TRUE)
+      makeGRangesFromDataFrame(df, starts.in.df.are.0based = TRUE)
   }
 }
 
 #' Read the real coordinates of Neanderthal fixed sites.
 read_sites <- function(sites_bed) {
-  gr <- read_tsv(sites_bed, col_types="ciiiic") %>%
-    select(real_chrom=chrom, real_start=start, real_end=end, start=slim_start, end=slim_end, within) %>%
-    mutate(chrom=1) %>% 
-    makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+  gr <- read_tsv(sites_bed, col_types = "ciiiic") %>%
+    select(real_chrom = chrom, real_start = start, real_end = end, start = slim_start, end = slim_end, within) %>%
+    mutate(chrom = 1) %>%
+    makeGRangesFromDataFrame(keep.extra.columns = TRUE)
   gr
 }
 
@@ -162,26 +210,11 @@ transpose_sites <- function(sim_sites, real_sites) {
   hits <- findOverlaps(real_sites, sim_sites)
   transposed <- as.data.frame(mcols(real_sites)) %>%
     setNames(c("chrom", "start", "end")) %>%
-    makeGRangesFromDataFrame(starts.in.df.are.0based=TRUE) %>%
+    makeGRangesFromDataFrame(starts.in.df.are.0based = TRUE) %>%
     .[queryHits(hits)]
   mcols(transposed) <- mcols(sim_sites)
-  
+
   transposed
-}
-
-#' Filter mutations' positions based on given criteria.
-filter_muts <- function(vcf, mut_type=NULL, pop_origin=NULL, t_min=-Inf, t_max=Inf) {
-  mut_pos <- info(vcf)$GO >= t_min & info(vcf)$GO <= t_max
-
-  if (!is.null(mut_type)) {
-    mut_pos <- mut_pos & info(vcf)$MT == mut_type
-  }
-
-  if (!is.null(pop_origin)) {
-    mut_pos <- mut_pos & (info(vcf)$PO == pop_origin)
-  }
-
-  mut_pos
 }
 
 #' Get names of haplotypes in a given GT GRanges object.
