@@ -1,4 +1,3 @@
-# read_vcf("~/projects/nea-over-time/data/simulations/deserts_tf_binding_site_h_0.5_rep_2_gen_2200.vcf.gz")
 #' Read a simulated VCF file.
 #'
 #' @param path Path to a VCF file.
@@ -6,15 +5,17 @@
 #' @return VCF object.
 #'
 #' @seealso VariantAnnotation::readVCF
+#'
+#' @export
 read_vcf <- function(path) {
   VariantAnnotation::readVcf(path)
 }
 
 
-#' Load mutation data.
+#' Load mutation information (ignoring genotypes).
 #'
-#' @param mut_type Mutation type using SLiM conventions ("m0", "m1", etc.).
-#' @param pop_origin Population in which a mutation originated ("p0", "p1", etc.).
+#' @param mut_type Mutation type as an integer.
+#' @param pop_origin Integer ID of a population of origin.
 #' @param t_min Lower bound on time of origin.
 #' @param t_max Upper bound on time of origin.
 #'
@@ -36,34 +37,16 @@ mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_ma
 }
 
 
-# Filter positions based on given mutation criteria.
-filter_muts <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
-  vcf_info <- VariantAnnotation::info(vcf)
-
-  mut_pos <- vcf_info$GO >= t_min & vcf_info$GO <= t_max
-
-  if (!is.null(mut_type)) {
-    mut_pos <- mut_pos & vcf_info$MT == mut_type
-  }
-
-  if (!is.null(pop_origin)) {
-    mut_pos <- mut_pos & (vcf_info$PO == pop_origin)
-  }
-
-  mut_pos
-}
-
-
-#' Load mutation genotypes and other information.
+#' Load mutation genotypes.
 #'
-#' @param mut_type Mutation type using SLiM conventions ("m0", "m1", etc.).
-#' @param pop_origin Population in which a mutation originated ("p0", "p1", etc.).
+#' @param mut_type Mutation type as an integer.
+#' @param pop_origin Integer ID of a population of origin.
 #' @param t_min Lower bound on time of origin.
 #' @param t_max Upper bound on time of origin.
 #'
 #' @return GRanges object.
 #'
-#' @importFrom magrittr %>
+#' @importFrom magrittr %>%
 mut_genotypes <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
 
@@ -81,6 +64,24 @@ mut_genotypes <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
   gr <- shift(gr, shift = -1)
 
   sort(gr)
+}
+
+
+# Filter positions based on given mutation criteria.
+filter_muts <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
+  vcf_info <- VariantAnnotation::info(vcf)
+
+  mut_pos <- vcf_info$GO >= t_min & vcf_info$GO <= t_max
+
+  if (!is.null(mut_type)) {
+    mut_pos <- mut_pos & vcf_info$MT == mut_type
+  }
+
+  if (!is.null(pop_origin)) {
+    mut_pos <- mut_pos & (vcf_info$PO == pop_origin)
+  }
+
+  mut_pos
 }
 
 

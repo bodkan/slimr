@@ -2,15 +2,15 @@
 % Please edit documentation in R/vcf_output.R
 \name{mut_genotypes}
 \alias{mut_genotypes}
-\title{Load mutation genotypes and other information.}
+\title{Load mutation genotypes.}
 \usage{
 mut_genotypes(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
   t_max = Inf)
 }
 \arguments{
-\item{mut_type}{Mutation type using SLiM conventions ("m0", "m1", etc.).}
+\item{mut_type}{Mutation type as an integer.}
 
-\item{pop_origin}{Population in which a mutation originated ("p0", "p1", etc.).}
+\item{pop_origin}{Integer ID of a population of origin.}
 
 \item{t_min}{Lower bound on time of origin.}
 
@@ -20,5 +20,5 @@ mut_genotypes(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
 GRanges object.
 }
 \description{
-Load mutation genotypes and other information.
+Load mutation genotypes.
 }
