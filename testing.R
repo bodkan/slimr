@@ -8,3 +8,4 @@ mut_info(vcf, pop_origin = 1)
 mut_info(vcf, pop_origin = 2)
 mut_info(vcf, t_min = 60000, t_max = 61000)
 
+mut_gt(vcf)
