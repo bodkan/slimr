@@ -36,14 +36,20 @@ split_haplotypes <- function(gt_mat) {
 # These are used for "splitting" admixture tracts that overlap a centromere
 # and would therefore appear extensively long.
 get_centromeres <- function() {
-  session <- browserSession("UCSC")
-  genome(session) <- "hg19"
-  query <- ucscTableQuery(session, "gap", GRangesForUCSCGenome("hg19", chrom = paste0("chr", 1:22)))
+  session <- rtracklayer::browserSession("UCSC")
+  rtracklayer::genome(session) <- "hg19"
 
-  tbl <- getTable(query)
+  query <- rtracklayer::ucscTableQuery(
+    session,
+    "gap",
+    rtracklayer::GRangesForUCSCGenome("hg19", chrom = paste0("chr", 1:22))
+  )
+  tbl <- rtracklayer::getTable(query)
 
-  gaps <- filter(tbl, type %in% c("centromere"), chrom %in% paste0("chr", 1:22)) %>%
-    makeGRangesFromDataFrame(keep.extra.columns = TRUE)
+  gaps_df <- dplyr::filter(tbl,
+                           type %in% c("centromere"),
+                           chrom %in% paste0("chr", 1:22))
+  gaps_gr <- GenomicRanges::makeGRangesFromDataFrame(gaps_df, keep.extra.columns = TRUE)
 
-  gaps
+  gaps_gr
 }
