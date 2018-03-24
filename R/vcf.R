@@ -165,7 +165,13 @@ read_sites <- function(file) {
 #' @export
 #'
 #' @importFrom magrittr %>%
-ancestry_tracks <- function(markers, chroms) {
+ancestry_tracks <- function(markers, chroms = NULL) {
+  # if no chromosomes were specified, look for ancestry tracks in all
+  if (is.null(chroms)) {
+    cols <- colnames(GenomicRanges::mcols(markers))
+    chroms <- cols[grep("^chr", cols)]
+  }
+
   lapply(chroms, function(chrom) {
 
   marker_runs <- rle(as.integer(GenomicRanges::mcols(markers)[[chrom]] == 1))

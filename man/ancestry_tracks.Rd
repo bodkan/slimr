@@ -5,7 +5,7 @@
 \title{Given a chromosome with fixed ancestry markers, infer coordinates of
 introgressed tracks.}
 \usage{
-ancestry_tracks(markers, chroms)
+ancestry_tracks(markers, chroms = NULL)
 }
 \arguments{
 \item{markers}{GRanges object with marker genotypes.}
