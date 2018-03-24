@@ -19,6 +19,3 @@ GRanges object with coordinates of detected tracks.
 Given a chromosome with fixed ancestry markers, infer coordinates of
 introgressed tracks.
 }
-\seealso{
-mut_gt
-}

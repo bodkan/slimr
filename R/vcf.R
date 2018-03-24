@@ -51,6 +51,8 @@ mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_ma
 #'
 #' @return GRanges object.
 #'
+#' @export
+#'
 #' @importFrom magrittr %>%
 mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
@@ -134,6 +136,8 @@ transpose_sites <- function(sim_sites, real_sites) {
 #'
 #' @seealso admixr::transpose_sites
 #'
+#' @export
+#'
 #' @importFrom magrittr %>%
 read_sites <- function(file) {
   gr <- readr::read_tsv(file, col_types = "ciiiic") %>%
@@ -160,8 +164,6 @@ read_sites <- function(file) {
 #'
 #' @export
 #'
-#' @seealso mut_gt
-#'
 #' @importFrom magrittr %>%
 ancestry_tracks <- function(markers, chroms) {
   lapply(chroms, function(chrom) {
@@ -181,9 +183,11 @@ ancestry_tracks <- function(markers, chroms) {
   track_start <- block_start[anc_pos]
   track_end <- block_end[anc_pos]
 
-  anc_haps <- GRanges(unique(seqnames(markers)),
-                      IRanges(start = start(markers[track_start + 1, ]),
-                              end   = start(markers[track_end,       ])))
+  anc_haps <- GenomicRanges::GRanges(
+    unique(GenomicRanges::seqnames(markers)),
+    IRanges::IRanges(start = GenomicRanges::start(markers[track_start + 1, ]),
+                     end   = GenomicRanges::start(markers[track_end,       ]))
+  )
 
   anc_haps
 
