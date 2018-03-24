@@ -5,12 +5,12 @@
 \title{Given a chromosome with fixed ancestry markers, infer coordinates of
 introgressed tracks.}
 \usage{
-ancestry_tracks(chrom, markers)
+ancestry_tracks(markers, chroms)
 }
 \arguments{
-\item{chrom}{ID of a simulated chromosome (obtained from a VCF).}
-
 \item{markers}{GRanges object with marker genotypes.}
+
+\item{chroms}{Identifiers of chromosomes to analyze.}
 }
 \value{
 GRanges object with coordinates of detected tracks.

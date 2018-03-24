@@ -153,14 +153,19 @@ read_sites <- function(file) {
 #' Given a chromosome with fixed ancestry markers, infer coordinates of
 #' introgressed tracks.
 #'
-#' @param chrom ID of a simulated chromosome (obtained from a VCF).
 #' @param markers GRanges object with marker genotypes.
+#' @param chroms Identifiers of chromosomes to analyze.
 #'
 #' @return GRanges object with coordinates of detected tracks.
 #'
 #' @export
+#'
 #' @seealso mut_gt
-ancestry_tracks <- function(chrom, markers) {
+#'
+#' @importFrom magrittr %>%
+ancestry_tracks <- function(markers, chroms) {
+  lapply(chroms, function(chrom) {
+
   marker_runs <- rle(as.integer(GenomicRanges::mcols(markers)[[chrom]] == 1))
 
   # if there are no informative markers on this chromosome, there are no
@@ -181,4 +186,6 @@ ancestry_tracks <- function(chrom, markers) {
                               end   = start(markers[track_end,       ])))
 
   anc_haps
+
+  }) %>% GenomicRanges::GRangesList() %>% setNames(chroms)
 }
