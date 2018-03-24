@@ -148,3 +148,37 @@ read_sites <- function(file) {
     GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
   gr
 }
+
+
+#' Given a chromosome with fixed ancestry markers, infer coordinates of
+#' introgressed tracks.
+#'
+#' @param chrom ID of a simulated chromosome (obtained from a VCF).
+#' @param markers GRanges object with marker genotypes.
+#'
+#' @return GRanges object with coordinates of detected tracks.
+#'
+#' @export
+#' @seealso mut_gt
+ancestry_tracks <- function(chrom, markers) {
+  marker_runs <- rle(as.integer(GenomicRanges::mcols(markers)[[chrom]] == 1))
+
+  # if there are no informative markers on this chromosome, there are no
+  # introgressed tracks
+  if (!any(marker_runs$values)) return(GenomicRanges::GRanges())
+
+  block_idx <- c(0, cumsum(marker_runs$lengths))
+  block_start <- block_idx[-length(block_idx)]
+  block_end <- block_idx[2:length(block_idx)]
+
+  # a single run of markers implies a 100% of ancestry
+  anc_pos <- if (length(marker_runs$values) > 1) marker_runs$values == 1 else 1
+  track_start <- block_start[anc_pos]
+  track_end <- block_end[anc_pos]
+
+  anc_haps <- GRanges(unique(seqnames(markers)),
+                      IRanges(start = start(markers[track_start + 1, ]),
+                              end   = start(markers[track_end,       ])))
+
+  anc_haps
+}
