@@ -5,7 +5,7 @@
 \title{Load mutation genotypes.}
 \usage{
 mut_gt(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
-  t_max = Inf)
+  t_max = Inf, info = FALSE)
 }
 \arguments{
 \item{vcf}{VCF object.}
@@ -17,6 +17,8 @@ mut_gt(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
 \item{t_min}{Lower bound on time of origin.}
 
 \item{t_max}{Upper bound on time of origin.}
+
+\item{info}{Add INFO data? Just the GT matrix is returned by default.}
 }
 \value{
 GRanges object.

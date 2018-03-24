@@ -48,13 +48,15 @@ mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_ma
 #' @param pop_origin Integer ID of a population of origin.
 #' @param t_min Lower bound on time of origin.
 #' @param t_max Upper bound on time of origin.
+#' @param info Add INFO data? Just the GT matrix is returned by default.
 #'
 #' @return GRanges object.
 #'
 #' @export
 #'
 #' @importFrom magrittr %>%
-mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
+mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
+                   t_max = Inf, info = FALSE) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
 
   gr <- GenomicRanges::granges(vcf)[mut_pos]
@@ -64,9 +66,13 @@ mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max 
   hap_mat <- as.data.frame(split_haplotypes(gt_mat))
 
   # get the INFO columns
-  info_df <- mut_info(vcf, mut_type, pop_origin, t_min, t_max) %>%
-    GenomicRanges::mcols() %>%
-    as.data.frame
+  if (info) {
+    info_df <- mut_info(vcf, mut_type, pop_origin, t_min, t_max) %>%
+      GenomicRanges::mcols() %>%
+      as.data.frame
+  } else {
+    info_df <- NULL
+  }
 
   GenomicRanges::mcols(gr) <- dplyr::bind_cols(info_df, hap_mat)
   names(gr) <- NULL
