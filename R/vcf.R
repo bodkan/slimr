@@ -22,6 +22,8 @@ read_vcf <- function(path) {
 #'
 #' @return GRanges object.
 #'
+#' @export
+#'
 #' @importFrom magrittr %>%
 mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
