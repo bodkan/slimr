@@ -11,10 +11,6 @@ You need to install `devtools` first:
 ```
 install.packages("devtools")
 devtools::install_github("bodkan/slimr")
-```
 
-After that simply:
-
-```
 library(slimr)
 ```
