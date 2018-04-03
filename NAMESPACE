@@ -2,7 +2,7 @@
 
 export(ancestry_tracks)
 export(mut_gt)
-export(read_sites)
+export(read_coordinates)
 export(read_vcf)
-export(transpose_sites)
+export(transpose_coordinates)
 importFrom(magrittr,"%>%")

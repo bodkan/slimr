@@ -79,7 +79,7 @@ mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
 }
 
 
-#' Transpose the simulated sites in the SLiM 0-based coordinate system into
+#' Transpose coordinates in the SLiM 0-based coordinate system into
 #' realistic coordinate system.
 #'
 #' SLiM simulates all mutations as part of a single continuous "chromosome".
@@ -88,21 +88,25 @@ mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
 #' This function performs this transposition based on the given positions of
 #' the sites in their original coordinate system.
 #'
-#' @param sim_sites GRanges object with SLiM VCF output data.
-#' @param real_sites GRanges object with real coordinates of sim_sites.
+#' The real_coords GRanges object must contain a DataFrame object with three
+#' columns specifying a realistic chromosome, start and end coordinate of
+#' a region.
+#'
+#' @param sim_coords GRanges object with SLiM, 0-based coordinates.
+#' @param real_coords GRanges object with real coordinate.
 #'
 #' @return GRanges object with transposed coordinates.
 #'
-#' @seealso read_sites
+#' @seealso read_coordinates
 #'
 #' @export
-transpose_sites <- function(sim_sites, real_sites) {
-  # for each simulated 0-based SLiM site, find a corresponding real coordinate
-  hits <- GenomicRanges::findOverlaps(real_sites, sim_sites)
+transpose_coordinates <- function(sim_coords, real_coords) {
+  # for each simulated 0-based SLiM position, find a corresponding
+  # real coordinate
+  hits <- GenomicRanges::findOverlaps(real_coords, sim_coords)
 
-  # get the coordinates of the realistic sites from the DataFrame portion
-  # of the GRanges object
-  transposed_df <- as.data.frame(GenomicRanges::mcols(real_sites))
+  # get the realistic coordinates from a DataFrame portion of a GRanges object
+  transposed_df <- as.data.frame(GenomicRanges::mcols(real_coords))
   names(transposed_df) <- c("chrom", "start", "end")
 
   # convert the realistic coordinates into a GRanges object
@@ -110,38 +114,38 @@ transpose_sites <- function(sim_sites, real_sites) {
       transposed_df, starts.in.df.are.0based = TRUE
   )[IRanges::from(hits)]
 
-  # assign the INFO/GT DataFrame object of the simulated sites to the newly
-  # generated realistic coordinates GRanges object
-  GenomicRanges::mcols(transposed_gr) <- GenomicRanges::mcols(sim_sites)
+  # assign the INFO/GT DataFrame object of the simulated coordinates to the
+  # newly generated realistic coordinates GRanges object
+  GenomicRanges::mcols(transposed_gr) <- GenomicRanges::mcols(sim_coords)
 
   transposed_gr
 }
 
 
-#' Read positions of simulated sites in their original coordinate system.
+#' Read positions of simulated coordinates (regions or sites) in their
+#' original coordinate system.
 #'
-#' SLiM simulates all mutations as part of a single continuous "chromosome".
-#' Therefore, simulating fixed mutations that are present in a real genome
+#' SLiM simulates everything as part of a single continuous "chromosome".
+#' Therefore, matching simulated coordinates to their real coordinates
 #' requires their transposition into a 0-based continuous coordinate system.
 #' This function reads a table in a BED-like format that makes it possible
 #' to "reverse transpose" the simulated 0-based coordinates into their
 #' original form using the "transpose_sites" function.
 #'
-#' The file has a strict (tab-separated) format and must contain the following
-#' columns in the same order: original_chromosome_id original_start_pos
-#' original_end_pos SLiM_start_pos SLiM_end_pos.
+#' The coordinate file must be in a TSV format and must contain columns
+#' chrom, start, end, slim_start and slim_end.
 #'
 #' @param file Path to a BED-like file. See the required format bellow.
 #'
 #' @return GRanges object.
 #'
-#' @seealso admixr::transpose_sites
+#' @seealso admixr::transpose_coordinates
 #'
 #' @export
 #'
 #' @importFrom magrittr %>%
-read_sites <- function(file) {
-  gr <- readr::read_tsv(file, col_types = "ciiiic") %>%
+read_coordinates <- function(file) {
+  gr <- readr::read_tsv(file) %>%
     dplyr::select(
       real_chrom = chrom,
       real_start = start,
