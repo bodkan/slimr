@@ -226,7 +226,9 @@ fill_freq <- function(sim_sites, all_sites) {
 
   joined <- dplyr::full_join(sim_df, all_df,
                              by = c("seqnames", "start", "end")) %>%
-    dplyr::mutate(freq=ifelse(is.na(freq), 0, freq))
+    dplyr::mutate(freq=ifelse(is.na(freq), 0, freq)) %>%
+    dplyr::mutate_at(dplyr::vars(dplyr::starts_with("chr")),
+                     dplyr::funs(ifelse(is.na(.), 0, .)))
 
   sort(GenomicRanges::makeGRangesFromDataFrame(joined,
                                                keep.extra.columns = TRUE))
