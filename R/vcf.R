@@ -145,7 +145,7 @@ transpose_coordinates <- function(sim_coords, real_coords) {
 #'
 #' @importFrom magrittr %>%
 read_coordinates <- function(file) {
-  gr <- readr::read_tsv(file) %>%
+  gr <- read.table(file, header = TRUE, stringsAsFactors = FALSE) %>%
     dplyr::select(
       real_chrom = chrom,
       real_start = start,
