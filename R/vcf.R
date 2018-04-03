@@ -25,7 +25,8 @@ read_vcf <- function(path) {
 #' @export
 #'
 #' @importFrom magrittr %>%
-mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
+mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
+                     t_max = Inf) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
 
   gr <- GenomicRanges::granges(vcf)[mut_pos]
@@ -205,4 +206,28 @@ ancestry_tracks <- function(markers, chroms = NULL) {
   anc_haps
 
   }) %>% GenomicRanges::GRangesList() %>% setNames(chroms)
+}
+
+#' Fill in frequencies of alleles lost during the simulation (to prevent a SFS
+#' to be "skewed" at the end of the simulation).
+#'
+#' @param sim_sites GRanges object of simulated sites.
+#' @param all_sites GRanges object of all sites at the start of a simulation.
+#'
+#' @return GRanges object with frequencies of lost sites set to zero. Otherwise
+#'   contains the same data as given by the sim_sites argument.
+#'
+#' @export
+#'
+#' @importFrom magrittr %>%
+fill_freq <- function(sim_sites, all_sites) {
+  sim_df <- dplyr::select(as.data.frame(sim_sites), -strand)
+  all_df <- as.data.frame(all_sites)[c("seqnames", "start", "end")]
+
+  joined <- dplyr::full_join(sim_df, all_df,
+                             by = c("seqnames", "start", "end")) %>%
+    dplyr::mutate(joined, freq=ifelse(is.na(freq), 0, freq))
+
+  sort(GenomicRanges::makeGRangesFromDataFrame(joined,
+                                               keep.extra.columns = TRUE))
 }
