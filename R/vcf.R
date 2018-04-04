@@ -220,7 +220,7 @@ ancestry_tracks <- function(markers, chroms = NULL) {
 #' @export
 #'
 #' @importFrom magrittr %>%
-fill_freq <- function(sim_sites, all_sites) {
+fill_lost <- function(sim_sites, all_sites) {
   sim_df <- dplyr::select(as.data.frame(sim_sites), -strand)
   all_df <- as.data.frame(all_sites)[c("seqnames", "start", "end")]
 
