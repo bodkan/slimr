@@ -239,8 +239,8 @@ ancestry_deserts <- function(markers, cutoff = 0) {
 
     all_chrom[[chrom]] <- GenomicRanges::GRanges(
         chrom,
-        IRanges(start = chrom_markers[desert_start + 1, ]$pos,
-                end = chrom_markers[desert_end, ]$pos)
+        IRanges(start = GenomicRanges::start(chrom_markers[desert_start + 1, ]),
+                end = GenomicRanges::start(chrom_markers[desert_end, ]))
     )
   }
   Reduce(c, GRangesList(all_chrom))
