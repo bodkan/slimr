@@ -208,6 +208,45 @@ ancestry_tracks <- function(markers, chroms = NULL) {
   }) %>% GenomicRanges::GRangesList() %>% setNames(chroms)
 }
 
+#' Extract coordinates of deserts from a given VCF file.
+#'
+#' @param markers GRanges object with marker genotypes.
+#' @param cutoff Frequency cutoff for admixture markers.
+#'
+#' @return GRanges object with ancestry deserts.
+#'
+#' @export
+ancestry_deserts <- function(markers, cutoff = 0) {
+  all_chrom <- list()
+
+  for (chrom in unique(GenomicRanges::seqnames(markers))) {
+    chrom_markers <- markers[markers$chrom == chrom, ]
+    desert_runs <- rle(as.integer(chrom_markers$freq > cutoff))
+
+    # if there's not desert on this chromosome (i.e., the whole chromosome
+    # comes from an introgressing population), return nothing
+    if (length(desert_runs$values) < 2) {
+      all_chrom[[chrom]] <- NULL
+      next
+    }
+
+    block_idx <- c(0, cumsum(desert_runs$lengths))
+    block_start <- block_idx[-length(block_idx)]
+    block_end <- block_idx[2:length(block_idx)]
+
+    desert_start <- block_start[desert_runs$values == 0]
+    desert_end <- block_end[desert_runs$values == 0]
+
+    all_chrom[[chrom]] <- GenomicRanges::GRanges(
+        chrom,
+        IRanges(start = chrom_markers[desert_start + 1, ]$pos,
+                end = chrom_markers[desert_end, ]$pos)
+    )
+  }
+  Reduce(c, GRangesList(all_chrom))
+}
+
+
 #' Fill in frequencies of alleles lost during the simulation (to prevent a SFS
 #' to be "skewed" at the end of the simulation).
 #'
