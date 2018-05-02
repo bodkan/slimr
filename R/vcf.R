@@ -220,7 +220,7 @@ ancestry_deserts <- function(markers, cutoff = 0) {
   all_chrom <- list()
 
   for (chrom in unique(GenomicRanges::seqnames(markers))) {
-    chrom_markers <- markers[markers$chrom == chrom, ]
+    chrom_markers <- markers[GenomicRanges::seqnames(markers) == chrom, ]
     desert_runs <- rle(as.integer(chrom_markers$freq > cutoff))
 
     # if there's not desert on this chromosome (i.e., the whole chromosome
