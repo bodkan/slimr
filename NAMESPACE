@@ -3,6 +3,7 @@
 export(ancestry_deserts)
 export(ancestry_tracks)
 export(fill_lost)
+export(get_gaps)
 export(mut_gt)
 export(mut_info)
 export(read_coordinates)

@@ -32,10 +32,13 @@ split_haplotypes <- function(gt_mat) {
 }
 
 
-# Download the coordinates of centromeres.
-# These are used for "splitting" admixture tracts that overlap a centromere
-# and would therefore appear extensively long.
-get_centromeres <- function() {
+#' Download the coordinates of centromeres.
+#' These are used for "splitting" admixture tracts that overlap a centromere
+#' and would therefore appear extensively long.
+#' http://rohsdb.usc.edu/GBshape/cgi-bin/hgTables?db=hg19&hgta_group=map&hgta_track=gap&hgta_table=gap&hgta_doSchema=describe+table+schema
+#'
+#' @export
+get_gaps <- function() {
   session <- rtracklayer::browserSession("UCSC")
   rtracklayer::genome(session) <- "hg19"
 
@@ -47,7 +50,6 @@ get_centromeres <- function() {
   tbl <- rtracklayer::getTable(query)
 
   gaps_df <- dplyr::filter(tbl,
-                           type %in% c("centromere"),
                            chrom %in% paste0("chr", 1:22))
   gaps_gr <- GenomicRanges::makeGRangesFromDataFrame(gaps_df, keep.extra.columns = TRUE)
 
