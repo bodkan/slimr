@@ -53,5 +53,5 @@ get_gaps <- function() {
                            chrom %in% paste0("chr", 1:22))
   gaps_gr <- GenomicRanges::makeGRangesFromDataFrame(gaps_df, keep.extra.columns = TRUE)
 
-  gaps_gr
+  IRanges::reduce(gaps_gr)
 }
