@@ -2,7 +2,7 @@
 filter_muts <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf, t_max = Inf) {
   vcf_info <- VariantAnnotation::info(vcf)
 
-  if (is.null(mut_type) & is.null(pop_origin) & t_min == -Inf & t_max == Inf)
+  if (is.null(mut_type) & is.null(pop_origin) & t_min == -Inf & t_max == Inf) {
       mut_pos <- rep(TRUE, nrow(vcf_info))
   } else {
     mut_pos <- vcf_info$GO >= t_min & vcf_info$GO <= t_max
