@@ -23,8 +23,6 @@ read_vcf <- function(path) {
 #' @return GRanges object.
 #'
 #' @export
-#'
-#' @importFrom magrittr %>%
 mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
                      t_max = Inf) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
@@ -55,8 +53,6 @@ mut_info <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
 #' @return GRanges object.
 #'
 #' @export
-#'
-#' @importFrom magrittr %>%
 mut_gt <- function(vcf, mut_type = NULL, pop_origin = NULL, t_min = -Inf,
                    t_max = Inf) {
   mut_pos <- filter_muts(vcf, mut_type, pop_origin, t_min, t_max)
@@ -114,8 +110,8 @@ transpose_coordinates <- function(sim_coords, real_coords) {
 
   # convert the realistic coordinates into a GRanges object
   transposed_gr <- GenomicRanges::makeGRangesFromDataFrame(
-      transposed_df, starts.in.df.are.0based = TRUE
-  )[IRanges::from(hits)]
+                                                           transposed_df, starts.in.df.are.0based = TRUE
+                                                           )[IRanges::from(hits)]
 
   # assign the INFO/GT DataFrame object of the simulated coordinates to the
   # newly generated realistic coordinates GRanges object
@@ -145,10 +141,8 @@ transpose_coordinates <- function(sim_coords, real_coords) {
 #' @seealso admixr::transpose_coordinates
 #'
 #' @export
-#'
-#' @importFrom magrittr %>%
 read_coordinates <- function(file) {
-  gr <- read.table(file, header = TRUE, stringsAsFactors = FALSE) %>%
+  gr <- utils::read.table(file, header = TRUE, stringsAsFactors = FALSE) %>%
     dplyr::select(
       real_chrom = chrom,
       real_start = start,
@@ -156,9 +150,9 @@ read_coordinates <- function(file) {
       start = slim_start,
       end = slim_end
     ) %>%
-    dplyr::mutate(chrom = 1) %>%
-    GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
-  gr
+  dplyr::mutate(chrom = 1) %>%
+  GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
+gr
 }
 
 
@@ -171,8 +165,6 @@ read_coordinates <- function(file) {
 #' @return GRanges object with coordinates of detected tracks.
 #'
 #' @export
-#'
-#' @importFrom magrittr %>%
 ancestry_tracks <- function(markers, chroms = NULL) {
   # if no chromosomes were specified, look for ancestry tracks in all
   if (is.null(chroms)) {
@@ -181,31 +173,30 @@ ancestry_tracks <- function(markers, chroms = NULL) {
   }
 
   lapply(chroms, function(chrom) {
+    marker_runs <- rle(as.integer(GenomicRanges::mcols(markers)[[chrom]] == 1))
 
-  marker_runs <- rle(as.integer(GenomicRanges::mcols(markers)[[chrom]] == 1))
+    # if there are no informative markers on this chromosome, there are no
+    # introgressed tracks
+    if (!any(marker_runs$values)) return(GenomicRanges::GRanges())
 
-  # if there are no informative markers on this chromosome, there are no
-  # introgressed tracks
-  if (!any(marker_runs$values)) return(GenomicRanges::GRanges())
+    block_idx <- c(0, cumsum(marker_runs$lengths))
+    block_start <- block_idx[-length(block_idx)]
+    block_end <- block_idx[2:length(block_idx)]
 
-  block_idx <- c(0, cumsum(marker_runs$lengths))
-  block_start <- block_idx[-length(block_idx)]
-  block_end <- block_idx[2:length(block_idx)]
+    # a single run of markers implies a 100% of ancestry
+    anc_pos <- if (length(marker_runs$values) > 1) marker_runs$values == 1 else 1
+    track_start <- block_start[anc_pos]
+    track_end <- block_end[anc_pos]
 
-  # a single run of markers implies a 100% of ancestry
-  anc_pos <- if (length(marker_runs$values) > 1) marker_runs$values == 1 else 1
-  track_start <- block_start[anc_pos]
-  track_end <- block_end[anc_pos]
+    anc_haps <- GenomicRanges::GRanges(
+      unique(GenomicRanges::seqnames(markers)),
+      IRanges::IRanges(start = GenomicRanges::start(markers[track_start + 1, ]),
+                       end   = GenomicRanges::start(markers[track_end,       ]))
+    )
 
-  anc_haps <- GenomicRanges::GRanges(
-    unique(GenomicRanges::seqnames(markers)),
-    IRanges::IRanges(start = GenomicRanges::start(markers[track_start + 1, ]),
-                     end   = GenomicRanges::start(markers[track_end,       ]))
-  )
+    anc_haps
 
-  anc_haps
-
-  }) %>% GenomicRanges::GRangesList() %>% setNames(chroms)
+  }) %>% GenomicRanges::GRangesList() %>% stats::setNames(chroms)
 }
 
 #' Extract coordinates of deserts from a given VCF file.
@@ -238,14 +229,16 @@ ancestry_deserts <- function(markers, cutoff = 0) {
     desert_end <- block_end[desert_runs$values == 0]
 
     chrom_deserts <- GenomicRanges::GRanges(
-        chrom,
-        IRanges(start = GenomicRanges::start(chrom_markers[desert_start + 1, ]),
-                end = GenomicRanges::start(chrom_markers[desert_end, ]))
+      chrom,
+      IRanges::IRanges(
+        start = GenomicRanges::start(chrom_markers[desert_start + 1, ]),
+        end = GenomicRanges::start(chrom_markers[desert_end, ])
+      )
     )
 
-    all_chrom[[chrom]] <- chrom_deserts[width(chrom_deserts) > 1]
+    all_chrom[[chrom]] <- chrom_deserts[GenomicRanges::width(chrom_deserts) > 1]
   }
-  Reduce(c, GRangesList(all_chrom))
+  Reduce(c, GenomicRanges::GRangesList(all_chrom))
 }
 
 
@@ -259,18 +252,15 @@ ancestry_deserts <- function(markers, cutoff = 0) {
 #'   contains the same data as given by the sim_sites argument.
 #'
 #' @export
-#'
-#' @importFrom magrittr %>%
 fill_lost <- function(sim_sites, all_sites) {
   sim_df <- dplyr::select(as.data.frame(sim_sites), -strand)
   all_df <- as.data.frame(all_sites)[c("seqnames", "start", "end")]
 
   joined <- dplyr::full_join(sim_df, all_df,
                              by = c("seqnames", "start", "end")) %>%
-    dplyr::mutate(freq=ifelse(is.na(freq), 0, freq)) %>%
-    dplyr::mutate_at(dplyr::vars(dplyr::starts_with("chr")),
-                     dplyr::funs(ifelse(is.na(.), 0, .)))
+  dplyr::mutate(freq=ifelse(is.na(freq), 0, freq)) %>%
+  dplyr::mutate_at(dplyr::vars(dplyr::starts_with("chr")),
+                   dplyr::funs(ifelse(is.na(.), 0, .)))
 
-  sort(GenomicRanges::makeGRangesFromDataFrame(joined,
-                                               keep.extra.columns = TRUE))
+  sort(GenomicRanges::makeGRangesFromDataFrame(joined, keep.extra.columns = TRUE))
 }

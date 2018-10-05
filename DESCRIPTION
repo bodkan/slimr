@@ -15,9 +15,13 @@ Imports:
     VariantAnnotation,
     rtracklayer,
     dplyr,
+    tidyr,
     magrittr,
     stringr,
     GenomicRanges,
     readr,
-    IRanges
-RoxygenNote: 6.0.1
+    IRanges,
+    tibble,
+    stats,
+    utils
+RoxygenNote: 6.1.0
