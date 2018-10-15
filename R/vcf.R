@@ -143,7 +143,7 @@ transpose_coordinates <- function(sim_coords, real_coords) {
 #' @export
 read_coordinates <- function(file) {
   gr <- utils::read.table(file, header = TRUE, stringsAsFactors = FALSE) %>%
-    dplyr::select(
+    dplyr::rename(
       real_chrom = chrom,
       real_start = start,
       real_end = end,
@@ -152,7 +152,7 @@ read_coordinates <- function(file) {
     ) %>%
   dplyr::mutate(chrom = 1) %>%
   GenomicRanges::makeGRangesFromDataFrame(keep.extra.columns = TRUE)
-gr
+  gr
 }
 
 
