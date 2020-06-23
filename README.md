@@ -4,6 +4,8 @@
 
 A package for parsing, processing and analyzing [SLiM](https://messerlab.org/slim/) output files in R.
 
+**WARNING:** Please be aware that this package is no longer being developed. In principle there is no reason that it wouldn't work but it might require some tweaking on your part.
+
 ## Installation
 
 You need to install `devtools` first:
