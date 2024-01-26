@@ -4,7 +4,7 @@
 
 A package for parsing, processing and analyzing [SLiM](https://messerlab.org/slim/) output files in R.
 
-## This is not the _slimr_ you are looking for
+## This isn't the _slimr_ you're looking for
 
 <img width="498" alt="image" src="https://github.com/bodkan/slimr/assets/16516593/89761d76-a0b4-4a33-aaa2-47f03e61bdba">
 
